@@ -1,0 +1,1275 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>席次表（会場図準拠 / 円卓15）</title>
+<style>
+  :root{
+    --bg:#f4f6fb;
+    --paper:#ffffff;
+    --ink:#0f172a;
+    --sub:#475569;
+    --line:#0f172a;
+    --soft:#e2e8f0;
+    --panel:#ffffff;
+    --accent:#f59e0b;
+    --accent2:#60a5fa;
+
+    /* ★見やすさ最優先：物理スペース広め */
+    --hall-w: 2400px;
+    --hall-h: 1320px;
+
+    /* 円卓（3×5） */
+    --table-d: 140px;
+    --grid-gap-x: 260px;
+    --grid-gap-y: 230px;
+
+    /* ★氏名カード：名前だけ（小さく・読みやすく） */
+    --seat-w: 92px;
+    --seat-h: 44px;
+    --seat-radius: 86px; /* 内寄せ */
+  }
+
+  *{box-sizing:border-box}
+  body{
+    margin:0;
+    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Yu Gothic", Meiryo, Arial, sans-serif;
+    background:
+      radial-gradient(1200px 800px at 20% -10%, #dbeafe 0%, transparent 55%),
+      radial-gradient(1200px 800px at 90% 10%, #fde68a 0%, transparent 55%),
+      var(--bg);
+    color: var(--ink);
+  }
+
+  header{
+    position:sticky; top:0; z-index:30;
+    background: rgba(255,255,255,.82);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--soft);
+  }
+  .wrap{
+    max-width: 2800px;
+    margin: 0 auto;
+    padding: 12px 16px;
+    display:flex; gap:12px; align-items:center;
+  }
+  h1{margin:0; font-size:16px; letter-spacing:.02em}
+  .sub{color:var(--sub); font-size:12px}
+  .spacer{flex:1}
+  .btnrow{display:flex; gap:8px; flex-wrap:wrap; align-items:center}
+  button{
+    border:1px solid var(--soft);
+    background: #fff;
+    color: var(--ink);
+    padding:9px 12px;
+    border-radius:12px;
+    cursor:pointer;
+    font-weight:800;
+    font-size:13px;
+    white-space:nowrap;
+    box-shadow: 0 8px 18px rgba(15,23,42,.06);
+  }
+  button:hover{border-color:#cbd5e1; transform: translateY(-1px)}
+  button:active{transform: translateY(0px)}
+  button.danger{border-color:#fecaca; background:#fff1f2}
+  button.ghost{background:#fff}
+
+  main{
+    max-width: 2800px;
+    margin: 14px auto 26px;
+    padding: 0 16px;
+    display:grid;
+    grid-template-columns: 1fr 430px;
+    gap:12px;
+    align-items:start;
+    transition: grid-template-columns .2s ease;
+  }
+  body.side-collapsed main{ grid-template-columns: 1fr 0px; }
+
+  .panel{
+    border:1px solid var(--soft);
+    border-radius: 18px;
+    background: rgba(255,255,255,.75);
+    backdrop-filter: blur(10px);
+    overflow:hidden;
+    box-shadow: 0 18px 42px rgba(15,23,42,.10);
+  }
+  .panel .hd{
+    padding:10px 12px;
+    border-bottom:1px solid rgba(226,232,240,.9);
+    display:flex; align-items:center; gap:10px;
+  }
+  .tag{
+    font-size:11px; color:var(--sub);
+    border:1px solid rgba(226,232,240,.9);
+    border-radius:999px;
+    padding:4px 10px;
+    background:#fff;
+  }
+  .content{padding:12px}
+
+  /* ========= 会場図 ========= */
+  .hallWrap{overflow:auto; padding-bottom:10px; cursor:grab;}
+  .hallWrap:active{cursor:grabbing;}
+  .hallWrap::-webkit-scrollbar{height:12px;width:12px}
+  .hallWrap::-webkit-scrollbar-thumb{background:rgba(15,23,42,.18);border-radius:999px}
+  .hallWrap::-webkit-scrollbar-track{background:rgba(15,23,42,.05);border-radius:999px}
+  .hall{
+    width: var(--hall-w);
+    height: var(--hall-h);
+    position:relative;
+    border:1.5px solid rgba(15,23,42,.9);
+    border-radius: 14px;
+    background:
+      radial-gradient(circle at 1px 1px, rgba(15,23,42,.06) 1px, transparent 1px) 0 0 / 22px 22px,
+      #fff;
+  }
+
+  /* ★上部表示は出さない */
+  /* ★料理卓・受付は表示しない */
+  /* ★音響卓も表示しない */
+  .sound{ display:none !important; }
+
+  .foodSide, .foodBottom, .reception{ display:none !important; }
+
+  .hallTitle, .stageNote { display:none !important; }
+
+  .stage{
+    position:absolute;
+    top: 20px;
+    left:50%;
+    transform: translateX(-50%);
+    z-index: 20;
+    width: 520px;
+    height: 86px;
+    border:1.8px solid rgba(15,23,42,.9);
+    border-radius: 12px;
+    background:
+      linear-gradient(135deg, rgba(245,158,11,.35), rgba(245,158,11,.10));
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-weight:900;
+    letter-spacing:.08em;
+  }
+
+  .mcBox{
+    position:absolute;
+    z-index: 21;
+    top: 110px;
+    left: 50%;
+    transform: translateX(-560px);
+    display:flex;
+    gap:10px;
+    align-items:center;
+    font-size: 12px;
+    font-weight:800;
+    color: var(--ink);
+    background: rgba(255,255,255,.92);
+    padding: 6px 10px;
+    border-radius: 14px;
+    box-shadow: 0 10px 24px rgba(15,23,42,.10);
+  }
+  .mcIcon{
+    width: 30px; height: 30px;
+    border:1.8px solid rgba(15,23,42,.9);
+    border-radius: 10px;
+    display:grid;
+    place-items:center;
+    font-size: 12px;
+    background:#fff;
+    box-shadow: 0 10px 20px rgba(15,23,42,.08);
+  }
+
+  .micNote{
+    position:absolute;
+    z-index: 21;
+    top: 148px;
+    left:50%;
+    transform: translateX(-50%);
+    font-size: 11px;
+    font-weight:800;
+    color: var(--ink);
+    text-align:center;
+  }
+
+  .foodSide{
+    position:absolute;
+    top: 260px;
+    width: 60px;
+    height: 780px;
+    border:1.8px solid rgba(15,23,42,.9);
+    border-radius: 12px;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    writing-mode: vertical-rl;
+    font-weight:900;
+    letter-spacing:.12em;
+    background:#fff;
+    box-shadow: 0 12px 28px rgba(15,23,42,.08);
+  }
+  .foodLeft{ left: 130px; }
+  .foodRight{ right: 130px; }
+
+  .sound{
+    position:absolute;
+    bottom: 170px;
+    width: 78px;
+    height: 48px;
+    border:1.8px solid rgba(15,23,42,.9);
+    border-radius: 12px;
+    display:grid;
+    place-items:center;
+    font-weight:900;
+    font-size: 12px;
+    background:#fff;
+    box-shadow: 0 12px 28px rgba(15,23,42,.08);
+  }
+  .soundLeft{ left: 130px; }
+  .soundRight{ right: 130px; }
+
+  .foodBottom{
+    position:absolute;
+    bottom: 232px;
+    width: 280px;
+    height: 48px;
+    border:1.8px solid rgba(15,23,42,.9);
+    border-radius: 12px;
+    display:grid;
+    place-items:center;
+    font-weight:900;
+    background:#fff;
+    box-shadow: 0 12px 28px rgba(15,23,42,.08);
+  }
+  .foodB1{ left: 980px; }
+  .foodB2{ right: 980px; }
+
+  .reception{
+    position:absolute;
+    bottom: 92px;
+    left:50%;
+    transform: translateX(-50%);
+    width: 300px;
+    height: 56px;
+    border:1.8px solid rgba(15,23,42,.9);
+    border-radius: 12px;
+    display:grid;
+    place-items:center;
+    font-weight:900;
+    background:#fff;
+    box-shadow: 0 12px 28px rgba(15,23,42,.08);
+  }
+
+  .tablesGrid{
+    position:absolute;
+    top: 260px;
+    left: 260px;
+    right: 260px;
+    bottom: 120px;
+    display:grid;
+    grid-template-columns: repeat(5, 1fr);
+    grid-template-rows: repeat(3, 1fr);
+    column-gap: var(--grid-gap-x);
+    row-gap: var(--grid-gap-y);
+    place-items:center;
+  }
+
+  .roundTable{
+    width: var(--table-d);
+    height: var(--table-d);
+    border-radius: 999px;
+    border:1.8px solid rgba(15,23,42,.9);
+    position:relative;
+    background: radial-gradient(circle at 30% 30%, rgba(96,165,250,.10), transparent 55%), #fff;
+    box-shadow: 0 18px 38px rgba(15,23,42,.10);
+  }
+  .roundTable .tname{
+    position:absolute;
+    left:50%; top:50%;
+    transform: translate(-50%,-50%);
+    font-weight:900;
+    font-size: 13px;
+    color: #1d4ed8;
+    letter-spacing:.06em;
+  
+    background: rgba(37,99,235,.10);
+    border: 1.6px solid rgba(37,99,235,.55);
+    padding: 6px 10px;
+    border-radius: 999px;
+    box-shadow: 0 10px 22px rgba(37,99,235,.12);
+    text-transform: uppercase;
+  }
+
+  /* ===== 氏名カード（名前だけ） ===== */
+  .seat{
+    max-height: 56px; /* だいたい2行分 */
+    width: var(--seat-w);
+    min-height: var(--seat-h);
+    height: auto;
+    position:absolute;
+    left:50%; top:50%;
+    transform-origin: 0 0;
+    border:1.5px solid rgba(15,23,42,.9);
+    border-radius: 14px;
+    background: rgba(255,255,255,.96);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding: 6px 10px 6px 10px;
+    z-index: 10;
+    box-shadow: 0 12px 22px rgba(15,23,42,.10);
+    overflow:hidden;
+  }
+  .seat.bumped{ z-index: 25; }
+
+  .seat .pill{
+    position:absolute;
+    left:6px; top:6px;
+    width:18px; height:18px;
+    border:1.5px solid rgba(15,23,42,.9);
+    border-radius:999px;
+    display:grid; place-items:center;
+    font-weight:900;
+    font-size:10px;
+    color: var(--sub);
+    background:#fff;
+  }
+  .seat .xbtn{
+    position:absolute;
+    right:6px; top:6px;
+    width:18px; height:18px;
+    border:1.5px solid rgba(15,23,42,.9);
+    border-radius: 8px;
+    background:#fff;
+    cursor:pointer;
+    font-weight:900;
+    color: var(--sub);
+    line-height:1;
+    padding:0;
+  }
+  .seat .xbtn:hover{border-color:#ef4444; color:#ef4444}
+
+  .seat .nm{
+    width: 100%;
+    text-align:center;
+    font-weight:900;
+    font-size: 12px;
+    line-height: 1.05;
+    padding: 0 18px; /* pill + x の分 */
+    white-space: normal;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+    word-break: break-word;
+    line-break: strict;
+  }
+
+  .seat[data-empty="1"]{
+    background: rgba(248,250,252,.75);
+    box-shadow: none;
+    border-style: dashed;
+    border-color: rgba(148,163,184,.9);
+  }
+  .seat[data-empty="1"] .nm{ color:#94a3b8; font-weight:800; }
+  .seat[data-empty="1"] .xbtn{ display:none; }
+
+  /* 右ペイン */
+  aside.rightPane{ transition: transform .2s ease, opacity .2s ease; }
+  body.side-collapsed aside.rightPane{ transform: translateX(24px); opacity:0; pointer-events:none; }
+
+  .tools{display:flex; gap:10px; flex-wrap:wrap; padding: 10px 12px 0;}
+  .tools input, .tools select{
+    flex:1; min-width: 170px;
+    background: rgba(255,255,255,.9);
+    border:1px solid rgba(226,232,240,.95);
+    border-radius: 14px;
+    padding: 10px 12px;
+    color: var(--ink);
+    outline:none;
+    box-shadow: 0 10px 18px rgba(15,23,42,.06);
+  }
+  .list{
+    padding: 12px 12px 14px;
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+    max-height: calc(100vh - 240px);
+    overflow:auto;
+  }
+  .person{
+    border:1px solid rgba(226,232,240,.95);
+    border-radius: 16px;
+    padding:10px 10px;
+    background: rgba(255,255,255,.9);
+    display:flex;
+    gap:10px;
+    align-items:center;
+    cursor:grab;
+    box-shadow: 0 14px 26px rgba(15,23,42,.08);
+  }
+  .person:active{cursor:grabbing}
+  .badge{
+    padding:4px 10px;
+    border-radius:999px;
+    border:1px solid rgba(226,232,240,.95);
+    font-size:11px;
+    color: var(--sub);
+    white-space:nowrap;
+    background:#fff;
+  }
+  .badge.exec{border-color:#bae6fd; color:#0369a1}
+  .person .col{flex:1; min-width:0;}
+  .person .col .nm{font-weight:900}
+  .person .col .meta{color:var(--sub); font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .dropzone{
+    margin: 0 12px 14px;
+    padding: 10px 12px;
+    border-radius: 16px;
+    border:1px dashed rgba(148,163,184,.9);
+    color: var(--sub);
+    font-size:12px;
+    background: rgba(255,255,255,.8);
+  }
+  .dropzone.over{outline:2px solid #22c55e55}
+  .footerNote{padding: 0 12px 14px; color: var(--sub); font-size:12px; line-height:1.55;}
+
+  /* 折りたたみボタン */
+  .sideToggleFloat{
+    position: fixed;
+    right: 16px;
+    bottom: 16px;
+    z-index: 50;
+    border:1px solid rgba(226,232,240,.95);
+    background:#fff;
+    padding:10px 12px;
+    border-radius: 999px;
+    box-shadow: 0 14px 34px rgba(15,23,42,.16);
+    font-weight:900;
+  }
+
+  @media print{
+    header, .rightPane, .sideToggleFloat{display:none !important}
+    main{grid-template-columns:1fr; padding:0; margin:0}
+    .panel{box-shadow:none; border:none; background:#fff}
+    .hallWrap{overflow:visible}
+    body{background:#fff}
+  }
+
+  /* ===== 追加：下部の横スクロールバー（会場図と同期） ===== */
+  .hScroll{
+    margin-top: 10px;
+    height: 16px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    border-radius: 999px;
+    background: rgba(15,23,42,.05);
+    border: 1px solid rgba(226,232,240,.95);
+  }
+  .hScroll::-webkit-scrollbar{height:14px}
+  .hScroll::-webkit-scrollbar-thumb{background:rgba(15,23,42,.22);border-radius:999px}
+  .hScroll::-webkit-scrollbar-track{background:transparent}
+  .hInner{height:1px;} /* 幅だけ作る */
+
+
+  /* ===== 追加：名前検索で席を強調表示 ===== */
+  .seat.focus{
+    outline: 3px solid rgba(96,165,250,.9);
+    box-shadow: 0 0 0 6px rgba(96,165,250,.22), 0 18px 28px rgba(15,23,42,.18);
+    z-index: 60;
+    animation: pulseRing 1.2s ease-out 2;
+  }
+  @keyframes pulseRing{
+    0%{ box-shadow: 0 0 0 0 rgba(96,165,250,.28), 0 18px 28px rgba(15,23,42,.18); }
+    70%{ box-shadow: 0 0 0 16px rgba(96,165,250,0), 0 18px 28px rgba(15,23,42,.18); }
+    100%{ box-shadow: 0 0 0 0 rgba(96,165,250,0), 0 18px 28px rgba(15,23,42,.18); }
+  }
+
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <div>
+      <h1>席次表（会場図準拠 / 円卓15）</h1>
+      <div class="sub">氏名カードは「名前だけ」表示（見やすさ最優先）／ 右の未配置リストは折りたたみ可</div>
+    </div>
+    <div class="spacer"></div>
+    <div class="btnrow">
+      
+      <input id="findName" list="nameList" type="text" placeholder="名前で検索…" style="width:220px; max-width: 40vw; padding:9px 12px; border-radius:12px; border:1px solid rgba(226,232,240,.95); box-shadow: 0 8px 18px rgba(15,23,42,.06); font-weight:800;"/>
+      <datalist id="nameList"></datalist>
+      <button id="findBtn" class="ghost">検索</button>
+<button id="autoBtn">自動配置（役員→所属店舗）</button>
+      <button id="saveBtn">保存</button>
+      <button id="loadBtn">読込</button>
+      <button id="exportBtn" class="ghost">エクスポート</button>
+      <button id="importBtn" class="ghost">インポート</button>
+      <input id="importFile" type="file" accept="application/json" style="display:none" />
+      <button id="printBtn">印刷</button>
+      <button id="clearBtn" class="danger">全消去</button>
+      <button id="sideBtn" class="ghost">リスト折りたたみ</button>
+    </div>
+  </div>
+</header>
+
+<button class="sideToggleFloat" id="sideBtnFloat">リスト</button>
+
+<main>
+  <section class="panel">
+    <div class="hd">
+      <strong>会場レイアウト</strong>
+      <span class="tag">円卓15（3×5）</span>
+      <span class="tag">役員卓＝T1（最前列中央）</span>
+    </div>
+    <div class="content">
+      <div class="hallWrap">
+        <div class="hall" id="hall">
+          <div class="hallTitle">4F Kin (386㎡)</div>
+      <div class="hScroll" id="hScroll" aria-label="横スクロール"><div class="hInner" id="hInner"></div></div>
+          <div class="stageNote">ステージH20×W600×D240cm</div>
+
+          <div class="stage">STAGE</div>
+
+          <div class="mcBox">
+            <div class="mcIcon">司</div>
+            <div>司会台<br/>有線マイク</div>
+          </div>
+          <div class="micNote">有線マイク<br/>スタンドマイク</div>
+
+<div class="tablesGrid" id="tables"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <aside class="panel rightPane">
+    <div class="hd">
+      <strong>未配置リスト</strong>
+      <span class="tag" id="countTag">0 名</span>
+      <span class="tag" id="placedNote">配置済み: 0</span>
+    </div>
+
+    <div class="tools">
+      <input id="q" type="text" placeholder="検索（氏名 / 店舗）"/>
+      <select id="storeFilter">
+        <option value="">全店舗</option>
+      </select>
+    </div>
+
+    <div class="list" id="list"></div>
+
+    <div class="dropzone" id="dropBack">ここにドロップ → 未配置に戻す</div>
+
+    <div class="footerNote">
+      ・席へドラッグで配置<br/>
+      ・席のカードは「氏名のみ」表示（役職などは省略）<br/>
+      ・右のリストは「リスト」ボタンで折りたたみできます
+    </div>
+  </aside>
+</main>
+
+<script>
+const ATTENDEES = [{"id": "A1", "empNo": "1", "name": "島袋 盛市郎", "store": "本社", "role": "代表取締役"}, {"id": "A2", "empNo": "2", "name": "石垣　亮", "store": "本社", "role": "取締役"}, {"id": "A3", "empNo": "28", "name": "川満 功", "store": "", "role": "常務取締役"}, {"id": "A4", "empNo": "141", "name": "京極 公寿", "store": "(04)企画課", "role": "部長"}, {"id": "A5", "empNo": "37", "name": "島袋 康成", "store": "(04)企画課", "role": "課長"}, {"id": "A6", "empNo": "101", "name": "真玉橋 卓", "store": "(04)企画課", "role": "課長"}, {"id": "A7", "empNo": "157", "name": "玉城 純", "store": "(04)ﾃﾞｼﾞﾀﾙ企画課", "role": "主任"}, {"id": "A8", "empNo": "309", "name": "青田 武士", "store": "(04)ﾃﾞｼﾞﾀﾙ企画課", "role": "主任"}, {"id": "A9", "empNo": "156", "name": "高原 景太郎", "store": "(04)EC課", "role": "店長(課長)"}, {"id": "A10", "empNo": "236", "name": "佐久本 剛行", "store": "(04)EC課", "role": "副店長(主任)"}, {"id": "A11", "empNo": "296", "name": "筒井 悠", "store": "(04)EC課", "role": "副店長(課長)"}, {"id": "A12", "empNo": "262", "name": "我那覇 康之", "store": "(04)EC課", "role": "主任"}, {"id": "A13", "empNo": "474", "name": "松田 真緒", "store": "(04)EC課", "role": "主任"}, {"id": "A14", "empNo": "308", "name": "小林 慶三", "store": "(04)EC課", "role": ""}, {"id": "A15", "empNo": "315", "name": "原 弘行", "store": "(04)EC課", "role": ""}, {"id": "A16", "empNo": "389", "name": "大西 祐暉", "store": "(04)EC課", "role": ""}, {"id": "A17", "empNo": "393", "name": "宮國 月美 (現:石原)", "store": "(04)EC課", "role": ""}, {"id": "A18", "empNo": "444", "name": "ルディ チャーヤディ タムリン", "store": "(04)EC課", "role": ""}, {"id": "A19", "empNo": "196", "name": "沼田 佑典", "store": "(01)門真店", "role": "店長(課長)"}, {"id": "A20", "empNo": "197", "name": "長山 保", "store": "(01)門真店", "role": ""}, {"id": "A21", "empNo": "297", "name": "比嘉 一心", "store": "(01)門真店", "role": ""}, {"id": "A22", "empNo": "335", "name": "豊田 慎", "store": "(01)門真店", "role": ""}, {"id": "A23", "empNo": "349", "name": "宮平 亮", "store": "(01)門真店", "role": ""}, {"id": "A24", "empNo": "435", "name": "村山 陸", "store": "(01)門真店", "role": ""}, {"id": "A25", "empNo": "472", "name": "奥野 ほのか", "store": "(01)門真店", "role": ""}, {"id": "A26", "empNo": "477", "name": "嘉陽 錬", "store": "(01)門真店", "role": ""}, {"id": "A27", "empNo": "500", "name": "竹内 優", "store": "(01)門真店", "role": ""}, {"id": "A28", "empNo": "519", "name": "大城 蕉真", "store": "(01)門真店", "role": ""}, {"id": "A29", "empNo": "518", "name": "西山　朋菜", "store": "(01)門真店", "role": ""}, {"id": "A30", "empNo": "71", "name": "與那覇 邦己", "store": "(02)茨木店", "role": "店長(課長)"}, {"id": "A31", "empNo": "167", "name": "上原 圭史", "store": "(02)茨木店", "role": "副店長(主任)"}, {"id": "A32", "empNo": "92", "name": "宇地原 徳人", "store": "(02)茨木店", "role": ""}, {"id": "A33", "empNo": "172", "name": "加島 匡哉", "store": "(02)茨木店", "role": ""}, {"id": "A34", "empNo": "377", "name": "上原 匠", "store": "(02)茨木店", "role": ""}, {"id": "A35", "empNo": "386", "name": "徳 裕也", "store": "(02)茨木店", "role": ""}, {"id": "A36", "empNo": "432", "name": "井内 康輔", "store": "(02)茨木店", "role": ""}, {"id": "A37", "empNo": "457", "name": "松田 健太郎", "store": "(02)茨木店", "role": ""}, {"id": "A38", "empNo": "461", "name": "瑞慶山 良汰", "store": "(02)茨木店", "role": ""}, {"id": "A39", "empNo": "230", "name": "垣花 卓也", "store": "(03)中環･八尾店", "role": "店長(課長)"}, {"id": "A40", "empNo": "333", "name": "白井 勇真", "store": "(03)中環･八尾店", "role": "副店長(主任)"}, {"id": "A41", "empNo": "301", "name": "高田 侑介", "store": "(03)中環･八尾店", "role": ""}, {"id": "A42", "empNo": "365", "name": "新堂 優貴", "store": "(03)中環･八尾店", "role": ""}, {"id": "A43", "empNo": "367", "name": "城山 泰典", "store": "(03)中環･八尾店", "role": ""}, {"id": "A44", "empNo": "401", "name": "加山 貴大", "store": "(03)中環･八尾店", "role": ""}, {"id": "A45", "empNo": "405", "name": "竹内 浩晃", "store": "(03)中環･八尾店", "role": ""}, {"id": "A46", "empNo": "424", "name": "樋口 叶子", "store": "(03)中環･八尾店", "role": ""}, {"id": "A47", "empNo": "447", "name": "柴垣 勇気", "store": "(03)中環･八尾店", "role": ""}, {"id": "A48", "empNo": "470", "name": "園田 巧", "store": "(03)中環･八尾店", "role": ""}, {"id": "A49", "empNo": "524", "name": "祖川　椋哉", "store": "(03)中環･八尾店", "role": ""}, {"id": "A50", "empNo": "51", "name": "宮城 和也", "store": "(04)守口店", "role": "店長(課長)"}, {"id": "A51", "empNo": "104", "name": "金武 寿洋", "store": "(04)守口店", "role": "副店長(主任)"}, {"id": "A52", "empNo": "159", "name": "池村 正樹", "store": "(04)守口店", "role": "副店長(主任)"}, {"id": "A53", "empNo": "90", "name": "山口 敬", "store": "(04)守口店", "role": "主任"}, {"id": "A54", "empNo": "111", "name": "西平 達司", "store": "(04)守口店", "role": "主任"}, {"id": "A55", "empNo": "284", "name": "銘苅 健", "store": "(04)守口店", "role": "主任"}, {"id": "A56", "empNo": "340", "name": "伊藤 圭祐", "store": "(04)守口店", "role": "主任"}, {"id": "A57", "empNo": "360", "name": "百崎 健太", "store": "(04)守口店", "role": ""}, {"id": "A58", "empNo": "490", "name": "高良 琉河", "store": "(04)守口店", "role": ""}, {"id": "A59", "empNo": "491", "name": "日髙 忠之助", "store": "(04)守口店", "role": ""}, {"id": "A60", "empNo": "499", "name": "山城 美月", "store": "(04)守口店", "role": ""}, {"id": "A61", "empNo": "501", "name": "永村 亮真", "store": "(04)守口店", "role": ""}, {"id": "A62", "empNo": "346", "name": "藤原 孝平", "store": "(05)豊中店", "role": "主任"}, {"id": "A63", "empNo": "142", "name": "藤山 征一郎", "store": "(05)豊中店", "role": "副店長(主任)"}, {"id": "A64", "empNo": "170", "name": "金城 俊", "store": "(05)豊中店", "role": ""}, {"id": "A65", "empNo": "233", "name": "末吉 富之", "store": "(05)豊中店", "role": ""}, {"id": "A66", "empNo": "326", "name": "目瀬 邦道", "store": "(05)豊中店", "role": ""}, {"id": "A67", "empNo": "358", "name": "與那嶺 一樹", "store": "(05)豊中店", "role": ""}, {"id": "A68", "empNo": "381", "name": "藤本 喬一", "store": "(05)豊中店", "role": ""}, {"id": "A69", "empNo": "382", "name": "野上 愛紗", "store": "(05)豊中店", "role": ""}, {"id": "A70", "empNo": "387", "name": "井上 太郎", "store": "(05)豊中店", "role": ""}, {"id": "A71", "empNo": "462", "name": "上間 鷹照", "store": "(05)豊中店", "role": ""}, {"id": "A72", "empNo": "495", "name": "玉城 克樹", "store": "(05)豊中店", "role": ""}, {"id": "A73", "empNo": "498", "name": "金城 優太", "store": "(05)豊中店", "role": ""}, {"id": "A74", "empNo": "516", "name": "木野 元太", "store": "(05)豊中店", "role": ""}, {"id": "A75", "empNo": "523", "name": "河野 龍成", "store": "(05)豊中店", "role": ""}, {"id": "A76", "empNo": "330", "name": "神田 武", "store": "(06)京都伏見店", "role": "副店長(主任)"}, {"id": "A77", "empNo": "59", "name": "宮城 いその", "store": "(06)京都伏見店", "role": ""}, {"id": "A78", "empNo": "312", "name": "友利 好児", "store": "(06)京都伏見店", "role": ""}, {"id": "A79", "empNo": "337", "name": "梶本 直寛", "store": "(06)京都伏見店", "role": ""}, {"id": "A80", "empNo": "407", "name": "松延 篤", "store": "(06)京都伏見店", "role": ""}, {"id": "A81", "empNo": "437", "name": "森本 信勇", "store": "(06)京都伏見店", "role": ""}, {"id": "A82", "empNo": "438", "name": "島袋 満輝", "store": "(06)京都伏見店", "role": ""}, {"id": "A83", "empNo": "451", "name": "山内 慧人", "store": "(06)京都伏見店", "role": ""}, {"id": "A84", "empNo": "464", "name": "久永 琢人", "store": "(06)京都伏見店", "role": ""}, {"id": "A85", "empNo": "479", "name": "稲福 政哉", "store": "(06)京都伏見店", "role": ""}, {"id": "A86", "empNo": "481", "name": "池原 達貴", "store": "(06)京都伏見店", "role": ""}, {"id": "A87", "empNo": "184", "name": "亀島 卓也", "store": "(07)尼崎店", "role": "店長(課長)"}, {"id": "A88", "empNo": "332", "name": "細田 恵亮", "store": "(07)尼崎店", "role": "副店長(主任)"}, {"id": "A89", "empNo": "219", "name": "仲宗根 守", "store": "(07)尼崎店", "role": ""}, {"id": "A90", "empNo": "263", "name": "中池 遼太", "store": "(07)尼崎店", "role": ""}, {"id": "A91", "empNo": "311", "name": "滝川 貴志", "store": "(07)尼崎店", "role": ""}, {"id": "A92", "empNo": "388", "name": "小川 洋史", "store": "(07)尼崎店", "role": ""}, {"id": "A93", "empNo": "439", "name": "金城 尚史", "store": "(07)尼崎店", "role": ""}, {"id": "A94", "empNo": "459", "name": "外間 完丸", "store": "(07)尼崎店", "role": ""}, {"id": "A95", "empNo": "467", "name": "高山 愛生", "store": "(07)尼崎店", "role": ""}, {"id": "A96", "empNo": "471", "name": "前西 列斗", "store": "(07)尼崎店", "role": ""}, {"id": "A97", "empNo": "485", "name": "佐古 翔太", "store": "(07)尼崎店", "role": ""}, {"id": "A98", "empNo": "496", "name": "池田 昌宏", "store": "(07)尼崎店", "role": ""}, {"id": "A99", "empNo": "508", "name": "脇 光佳利", "store": "(07)尼崎店", "role": ""}, {"id": "A100", "empNo": "254", "name": "高良 政之", "store": "(08)高槻店", "role": "店長(課長)"}, {"id": "A101", "empNo": "345", "name": "池嶋 佑太", "store": "(08)高槻店", "role": "副店長(主任)"}, {"id": "A102", "empNo": "135", "name": "嘉数 洋平", "store": "(08)高槻店", "role": ""}, {"id": "A103", "empNo": "268", "name": "檀野 恵利(旧:松原)", "store": "(08)高槻店", "role": ""}, {"id": "A104", "empNo": "286", "name": "大城 玄太", "store": "(08)高槻店", "role": ""}, {"id": "A105", "empNo": "374", "name": "中井 貴大", "store": "(08)高槻店", "role": ""}, {"id": "A106", "empNo": "484", "name": "永原 小雪", "store": "(08)高槻店", "role": ""}, {"id": "A107", "empNo": "36", "name": "宮城 斉", "store": "(09)宇治店", "role": "店長(課長)"}, {"id": "A108", "empNo": "133", "name": "下地 博和", "store": "(09)宇治店", "role": "副店長(主任)"}, {"id": "A109", "empNo": "226", "name": "仲程 実也", "store": "(09)宇治店", "role": ""}, {"id": "A110", "empNo": "283", "name": "平良 啓介", "store": "(09)宇治店", "role": ""}, {"id": "A111", "empNo": "331", "name": "渡部 拓也", "store": "(09)宇治店", "role": ""}, {"id": "A112", "empNo": "361", "name": "青木 宏之", "store": "(09)宇治店", "role": ""}, {"id": "A113", "empNo": "423", "name": "八坂 圭祐", "store": "(09)宇治店", "role": ""}, {"id": "A114", "empNo": "492", "name": "金城 蓮", "store": "(09)宇治店", "role": ""}, {"id": "A115", "empNo": "169", "name": "宮平 悠司", "store": "(10)京都右京店", "role": "店長(課長)"}, {"id": "A116", "empNo": "288", "name": "北野 幹人", "store": "(10)京都右京店", "role": "副店長(主任)"}, {"id": "A117", "empNo": "195", "name": "都木 篤", "store": "(10)京都右京店", "role": "主任"}, {"id": "A118", "empNo": "255", "name": "目瀬 亮介", "store": "(10)京都右京店", "role": ""}, {"id": "A119", "empNo": "264", "name": "金城 礼", "store": "(10)京都右京店", "role": ""}, {"id": "A120", "empNo": "362", "name": "西森 健太", "store": "(10)京都右京店", "role": ""}, {"id": "A121", "empNo": "366", "name": "中村 侑里乃", "store": "(10)京都右京店", "role": ""}, {"id": "A122", "empNo": "395", "name": "比嘉憲吾", "store": "(10)京都右京店", "role": ""}, {"id": "A123", "empNo": "417", "name": "平安 夏季", "store": "(10)京都右京店", "role": ""}, {"id": "A124", "empNo": "416", "name": "玉城 遼二", "store": "(10)京都右京店", "role": ""}, {"id": "A125", "empNo": "441", "name": "知花 大介", "store": "(10)京都右京店", "role": ""}, {"id": "A126", "empNo": "448", "name": "矢野 聖心", "store": "(10)京都右京店", "role": ""}, {"id": "A127", "empNo": "453", "name": "仲村 大輝", "store": "(10)京都右京店", "role": ""}, {"id": "A128", "empNo": "482", "name": "関森 一馬", "store": "(10)京都右京店", "role": ""}, {"id": "A129", "empNo": "320", "name": "松岡 真澄", "store": "(11)大阪鶴見店", "role": "主任"}, {"id": "A130", "empNo": "250", "name": "佐久川 政之", "store": "(11)大阪鶴見店", "role": "副店長(主任)"}, {"id": "A131", "empNo": "302", "name": "酒井 賢一", "store": "(11)大阪鶴見店", "role": "主任"}, {"id": "A132", "empNo": "329", "name": "橋本 剛志", "store": "(11)大阪鶴見店", "role": "主任"}, {"id": "A133", "empNo": "280", "name": "粟國 安等", "store": "(11)大阪鶴見店", "role": ""}, {"id": "A134", "empNo": "339", "name": "岸本 尚洋", "store": "(11)大阪鶴見店", "role": ""}, {"id": "A135", "empNo": "350", "name": "高田 雄一郎", "store": "(11)大阪鶴見店", "role": ""}, {"id": "A136", "empNo": "352", "name": "福田 朗", "store": "(11)大阪鶴見店", "role": ""}, {"id": "A137", "empNo": "420", "name": "浦久保 皓司", "store": "(11)大阪鶴見店", "role": ""}, {"id": "A138", "empNo": "507", "name": "宮本 夏奈衣", "store": "(11)大阪鶴見店", "role": ""}, {"id": "A139", "empNo": "520", "name": "宮城 秀司", "store": "(11)大阪鶴見店", "role": ""}, {"id": "A140", "empNo": "211", "name": "城間 生土", "store": "(12)ｱｸﾄ八尾店", "role": "店長(課長)"}, {"id": "A141", "empNo": "146", "name": "平野 和雄", "store": "(12)ｱｸﾄ八尾店", "role": ""}, {"id": "A142", "empNo": "274", "name": "中村 淳一朗", "store": "(12)ｱｸﾄ八尾店", "role": ""}, {"id": "A143", "empNo": "344", "name": "高江洲 義盛", "store": "(12)ｱｸﾄ八尾店", "role": ""}, {"id": "A144", "empNo": "229", "name": "新垣 祐一", "store": "(13)法人営業課", "role": "店長(課長)"}, {"id": "A145", "empNo": "285", "name": "高橋 和大", "store": "(13)法人営業課", "role": "店長(課長)"}, {"id": "A146", "empNo": "291", "name": "橋本 晋卓", "store": "(13)法人営業課", "role": "主任"}, {"id": "A147", "empNo": "493", "name": "知念 優衣", "store": "(13)法人営業課", "role": ""}, {"id": "A148", "empNo": "290", "name": "平野 敬章", "store": "(14)経理課", "role": "主任"}, {"id": "A149", "empNo": "217", "name": "仲底 教子", "store": "(14)経理課", "role": "主任"}, {"id": "A150", "empNo": "369", "name": "川﨑 沙耶", "store": "(14)経理課", "role": ""}];
+
+const TABLES = 15;
+const SEATS_PER_TABLE = 10;
+const EXEC_TABLE = 1;
+const STORAGE_KEY = "shima_seating_hallmap_v4_nameonly";
+
+/* 10席の角度（上から時計回り） */
+const SEAT_ANGLES = [-90,-54,-18,18,54,90,126,162,198,234];
+
+function isExec(role){
+  const r = (role||"").replace(/\s/g,"");
+  return /代表取締役|取締役|執行役員|監査役|会長|社長|副社長|専務|常務/.test(r);
+}
+function roleRank(role){
+  const r=(role||"").replace(/\s/g,"");
+  if(/代表取締役|会長|社長/.test(r)) return 10;
+  if(/副社長|専務/.test(r)) return 20;
+  if(/常務取締役|常務/.test(r)) return 30;
+  if(/取締役/.test(r)) return 40;
+  if(/執行役員/.test(r)) return 50;
+  if(/部長/.test(r)) return 60;
+  if(/課長/.test(r)) return 70;
+  return 99;
+}
+function storeKey(store){
+  const s = (store||"").trim();
+  if(s==="本社") return 0;
+  const m = s.match(/^\((\d+)\)/);
+  if(m) return parseInt(m[1],10);
+  if(!s) return 999;
+  return 500;
+}
+function storeLabel(store){
+  const s=(store||"").trim();
+  return s || "未設定";
+}
+
+function escHtml(s){
+  return (s||"").toString()
+    .replace(/&/g,"&amp;")
+    .replace(/</g,"&lt;")
+    .replace(/>/g,"&gt;")
+    .replace(/"/g,"&quot;")
+    .replace(/'/g,"&#39;");
+}
+function twoLineNameHTML(name){
+  const raw = (name||"").toString().trim();
+  if(!raw) return "";
+  const parts = raw.split(/[ 　]+/).filter(Boolean);
+  if(parts.length>=2){
+    // 例: "苗字 名" → 2行（残りは2行目へ寄せる）
+    return escHtml(parts[0]) + "<br>" + escHtml(parts.slice(1).join(""));
+  }
+  return escHtml(raw);
+}
+
+function seatId(t, s){ return `T${t}-${s}`; }
+function tableAlpha(t){ return String.fromCharCode(64 + Number(t)); }
+
+/* 座席番号ごとに半径を少し変えて「2重リング」 */
+function seatRadiusFor(s, base){
+  const delta = (s % 2 === 0) ? 10 : -8;
+  const top = (s===1 || s===2 || s===10) ? -6 : 0;
+  return base + delta + top;
+}
+function seatTransform(angleDeg, radius){
+  return `translate(-50%, -50%) rotate(${angleDeg}deg) translate(${radius}px) rotate(${-angleDeg}deg)`;
+}
+
+/* 会場図の 3段×5列。T1(役員卓)は最前列中央（ステージ側） */
+const VISUAL_ORDER = [
+  2, 3, 1, 4, 5,
+  6, 7, 8, 9, 10,
+  11,12,13,14,15
+];
+
+// ===== state =====
+let seatMap = {};
+let placed = new Set();
+let dragId = null;
+
+// offsets (collision)
+let seatOffsets = {}; // {seatId:{dx,dy}}
+function getOff(id){ return seatOffsets[id] || (seatOffsets[id]={dx:0,dy:0}); }
+function clamp(v, a, b){ return Math.max(a, Math.min(b, v)); }
+
+// ===== init =====
+function initSeatMap(){
+  seatMap = {};
+  placed = new Set();
+  for(let t=1;t<=TABLES;t++) for(let s=1;s<=SEATS_PER_TABLE;s++) seatMap[seatId(t,s)] = null;
+  seatOffsets = {};
+}
+
+function buildTables(){
+  const root = document.getElementById("tables");
+  root.innerHTML = "";
+
+  const baseRadius = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--seat-radius')) || 86;
+
+  for(const t of VISUAL_ORDER){
+    const rt = document.createElement("div");
+    rt.className = "roundTable";
+    rt.dataset.table = t;
+
+    const name = document.createElement("div");
+    name.className = "tname";
+    name.textContent = tableAlpha(t);
+    rt.appendChild(name);
+
+    for(let s=1;s<=SEATS_PER_TABLE;s++){
+      const seat = document.createElement("div");
+      seat.className = "seat";
+      seat.id = seatId(t,s);
+      seat.dataset.empty = "1";
+
+      const ang = SEAT_ANGLES[s-1];
+      const r = seatRadiusFor(s, baseRadius);
+      const base = seatTransform(ang, r);
+      seat.dataset.base = base;
+      seat.style.transform = base;
+
+      seat.ondragover = (e)=>{ e.preventDefault(); seat.classList.add("over"); };
+      seat.ondragleave = ()=> seat.classList.remove("over");
+      seat.ondrop = (e)=>{ e.preventDefault(); seat.classList.remove("over"); onDropSeat(seat.id); };
+
+      seat.innerHTML = `
+        <div class="pill">${s}</div>
+        <div class="nm">（空席）</div>
+        <button class="xbtn" title="未配置に戻す" onclick="clearSeat('${seat.id}')">×</button>
+      `;
+      rt.appendChild(seat);
+    }
+    root.appendChild(rt);
+  }
+}
+
+function uniqueStores(){
+  const set = new Set(ATTENDEES.map(a=>storeLabel(a.store)));
+  const arr = Array.from(set);
+  arr.sort((a,b)=>storeKey(a)-storeKey(b) || a.localeCompare(b,"ja"));
+  return arr;
+}
+function buildStoreFilter(){
+  const sel = document.getElementById("storeFilter");
+  const stores = uniqueStores();
+  for(const s of stores){
+    const opt = document.createElement("option");
+    opt.value = s;
+    opt.textContent = s;
+    sel.appendChild(opt);
+  }
+}
+
+function applyOffsets(){
+  for(let t=1;t<=TABLES;t++) for(let s=1;s<=SEATS_PER_TABLE;s++){
+    const id = seatId(t,s);
+    const el = document.getElementById(id);
+    if(!el) continue;
+    const off = getOff(id);
+    const base = el.dataset.base || "";
+    el.style.transform = `${base} translate(${off.dx}px, ${off.dy}px)`;
+  }
+}
+
+function rectsOverlap(a,b, pad=2){
+  return !(a.right < b.left+pad || a.left > b.right-pad || a.bottom < b.top+pad || a.top > b.bottom-pad);
+}
+
+function resolveOverlaps(){
+  const seats = [];
+  for(let t=1;t<=TABLES;t++) for(let s=1;s<=SEATS_PER_TABLE;s++){
+    const id = seatId(t,s);
+    const el = document.getElementById(id);
+    if(!el) continue;
+    seats.push(el);
+  }
+  applyOffsets();
+
+  const MAX_IT = 24;
+  const STEP = 4.8;
+  const MAX_OFF = 70;
+
+  for(let it=0; it<MAX_IT; it++){
+    let changed = false;
+
+    const rs = seats.map(el => el.getBoundingClientRect());
+
+    for(let i=0;i<seats.length;i++){
+      for(let j=i+1;j<seats.length;j++){
+        const ri = rs[i], rj = rs[j];
+        if(!rectsOverlap(ri,rj, 2)) continue;
+
+        const ai = seats[i].id, aj = seats[j].id;
+
+        const cix = (ri.left+ri.right)/2, ciy = (ri.top+ri.bottom)/2;
+        const cjx = (rj.left+rj.right)/2, cjy = (rj.top+rj.bottom)/2;
+        let vx = cix - cjx, vy = ciy - cjy;
+        let len = Math.hypot(vx,vy);
+        if(len < 0.001){
+          vx = (Math.random()-0.5);
+          vy = (Math.random()-0.5);
+          len = Math.hypot(vx,vy);
+        }
+        const ux = vx/len, uy = vy/len;
+
+        const iIsExecTable = ai.startsWith("T1-");
+        const jIsExecTable = aj.startsWith("T1-");
+
+        const oi = getOff(ai);
+        const oj = getOff(aj);
+
+        if(iIsExecTable && !jIsExecTable){
+          oj.dx = clamp(oj.dx - ux*STEP, -MAX_OFF, MAX_OFF);
+          oj.dy = clamp(oj.dy - uy*STEP, -MAX_OFF, MAX_OFF);
+          seats[j].classList.add("bumped");
+        } else if(jIsExecTable && !iIsExecTable){
+          oi.dx = clamp(oi.dx + ux*STEP, -MAX_OFF, MAX_OFF);
+          oi.dy = clamp(oi.dy + uy*STEP, -MAX_OFF, MAX_OFF);
+          seats[i].classList.add("bumped");
+        } else {
+          oi.dx = clamp(oi.dx + ux*(STEP/2), -MAX_OFF, MAX_OFF);
+          oi.dy = clamp(oi.dy + uy*(STEP/2), -MAX_OFF, MAX_OFF);
+          oj.dx = clamp(oj.dx - ux*(STEP/2), -MAX_OFF, MAX_OFF);
+          oj.dy = clamp(oj.dy - uy*(STEP/2), -MAX_OFF, MAX_OFF);
+          seats[i].classList.add("bumped");
+          seats[j].classList.add("bumped");
+        }
+        changed = true;
+      }
+    }
+
+    if(changed) applyOffsets();
+    else break;
+  }
+}
+
+function render(){
+  let placedCount = 0;
+
+  for(let t=1;t<=TABLES;t++) for(let s=1;s<=SEATS_PER_TABLE;s++){
+    const id = seatId(t,s);
+    const seat = document.getElementById(id);
+    if(!seat) continue;
+    const pid = seatMap[id];
+
+    if(!pid){
+      seat.dataset.empty="1";
+      seat.querySelector(".nm").textContent = "（空席）";
+      seat.title = "";
+    } else {
+      const p = ATTENDEES.find(x=>x.id===pid);
+      const nm = p?.name || "（不明）";
+
+      seat.dataset.empty="0";
+      seat.querySelector(".nm").innerHTML = twoLineNameHTML(nm);
+
+      // ★カードは名前だけ。でも詳細は title に残す
+      const meta = `${storeLabel(p?.store || "")}${(p?.role||"").trim() ? " / " + (p?.role||"").trim() : ""}`;
+      seat.title = `${nm}\n${meta}\n社番:${p?.empNo || ""}`;
+      placedCount++;
+    }
+  }
+
+  // 未配置リスト
+  const q = (document.getElementById("q").value||"").trim().toLowerCase();
+  const sf = document.getElementById("storeFilter").value;
+  const list = document.getElementById("list");
+  list.innerHTML = "";
+
+  const unplaced = ATTENDEES.filter(a=>!placed.has(a.id))
+    .filter(a=>!sf || storeLabel(a.store)===sf)
+    .filter(a=>!q || (`${a.name} ${a.store}`).toLowerCase().includes(q));
+
+  document.getElementById("countTag").textContent = `${unplaced.length} 名`;
+  document.getElementById("placedNote").textContent = `配置済み: ${placedCount}`;
+
+  for(const a of unplaced){
+    const row = document.createElement("div");
+    row.className = "person";
+    row.draggable = true;
+    row.ondragstart = ()=>{ dragId = a.id; };
+    const exec = isExec(a.role);
+    row.innerHTML = `
+      <div class="badge ${exec ? "exec":""}">${exec ? "役員": "一般"}</div>
+      <div class="col">
+        <div class="nm">${a.name}</div>
+        <div class="meta">${storeLabel(a.store)}${(a.role||"").trim()? " / " + (a.role||"").trim() : ""}</div>
+      </div>
+      <div class="badge">社番:${a.empNo || ""}</div>
+    `;
+    list.appendChild(row);
+  }
+
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => { resolveOverlaps(); fitSeatNames(); });
+  });
+}
+
+function onDropSeat(seat){
+  if(!dragId) return;
+  assign(seat, dragId);
+  dragId = null;
+  render();
+  persist();
+}
+
+function assign(seat, pid){
+  for(const k in seatMap){
+    if(seatMap[k]===pid) seatMap[k]=null;
+  }
+  const prev = seatMap[seat];
+  if(prev) placed.delete(prev);
+
+  seatMap[seat] = pid;
+  placed.add(pid);
+  seatOffsets[seat] = {dx:0,dy:0};
+}
+
+function clearSeat(seat){
+  const pid = seatMap[seat];
+  if(pid) placed.delete(pid);
+  seatMap[seat] = null;
+  seatOffsets[seat] = {dx:0,dy:0};
+  render();
+  persist();
+}
+
+function autoPlace(){
+  initSeatMap();
+
+  const execs = ATTENDEES
+    .filter(a=>isExec(a.role))
+    .sort((a,b)=> roleRank(a.role)-roleRank(b.role) || (a.empNo+"").localeCompare(b.empNo+"","ja"));
+
+  let idx=0;
+  for(let s=1;s<=SEATS_PER_TABLE;s++){
+    if(idx>=execs.length) break;
+    assign(seatId(EXEC_TABLE,s), execs[idx].id);
+    idx++;
+  }
+
+  const normals = ATTENDEES
+    .filter(a=>!isExec(a.role))
+    .sort((a,b)=> storeKey(a.store)-storeKey(b.store)
+              || storeLabel(a.store).localeCompare(storeLabel(b.store),"ja")
+              || a.name.localeCompare(b.name,"ja"));
+
+  const seats = [];
+  for(let t=1;t<=TABLES;t++){
+    if(t===EXEC_TABLE) continue;
+    for(let s=1;s<=SEATS_PER_TABLE;s++) seats.push(seatId(t,s));
+  }
+
+  let p=0;
+  for(const a of normals){
+    if(p>=seats.length) break;
+    if(placed.has(a.id)) continue;
+    assign(seats[p], a.id);
+    p++;
+  }
+
+  render();
+  persist();
+}
+
+function persist(){ localStorage.setItem(STORAGE_KEY, JSON.stringify({seatMap})); }
+function saveManual(){ persist(); alert("✅ 保存しました（このブラウザ内）"); }
+function loadManual(){
+  const raw = localStorage.getItem(STORAGE_KEY);
+  if(!raw){ alert("保存データがありません"); return; }
+  const obj = JSON.parse(raw);
+  if(obj && obj.seatMap){
+    seatMap = obj.seatMap;
+    placed = new Set(Object.values(seatMap).filter(Boolean));
+    seatOffsets = {};
+    render();
+    alert("✅ 読み込みました");
+  } else alert("読込に失敗しました");
+}
+
+// ===== 追加：エクスポート / インポート（席次をファイルで持ち運び） =====
+function exportSeating(){
+  try{
+    const payload = {
+      type: "shima_seating_export",
+      version: 1,
+      storageKey: STORAGE_KEY,
+      exportedAt: new Date().toISOString(),
+      seatMap,
+      seatOffsets: (typeof seatOffsets !== "undefined" ? seatOffsets : {})
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], {type:"application/json"});
+    const a = document.createElement("a");
+    const ts = new Date();
+    const pad = (n)=> String(n).padStart(2,"0");
+    const fname = `seating_${ts.getFullYear()}${pad(ts.getMonth()+1)}${pad(ts.getDate())}_${pad(ts.getHours())}${pad(ts.getMinutes())}.json`;
+    a.href = URL.createObjectURL(blob);
+    a.download = fname;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(()=>URL.revokeObjectURL(a.href), 5000);
+  }catch(e){
+    console.error(e);
+    alert("エクスポートに失敗しました");
+  }
+}
+
+function importSeatingObject(obj){
+  if(!obj || typeof obj !== "object" || !obj.seatMap){
+    alert("インポート形式が正しくありません（seatMap がありません）");
+    return;
+  }
+  if(!confirm("この席次で上書きします。よろしいですか？")) return;
+
+  seatMap = obj.seatMap;
+  placed = new Set(Object.values(seatMap).filter(Boolean));
+
+  if(obj.seatOffsets && typeof obj.seatOffsets === "object"){
+    seatOffsets = obj.seatOffsets;
+  }else{
+    seatOffsets = {};
+  }
+
+  render();
+  persist();
+  alert("✅ インポートしました");
+}
+
+function importSeatingFromFile(file){
+  const reader = new FileReader();
+  reader.onload = ()=>{
+    try{
+      const obj = JSON.parse(reader.result);
+      importSeatingObject(obj);
+    }catch(e){
+      console.error(e);
+      alert("JSONの読み込みに失敗しました");
+    }
+  };
+  reader.readAsText(file, "utf-8");
+}
+
+// ボタン配線
+document.getElementById("exportBtn")?.addEventListener("click", exportSeating);
+document.getElementById("importBtn")?.addEventListener("click", ()=>{
+  document.getElementById("importFile")?.click();
+});
+document.getElementById("importFile")?.addEventListener("change", (e)=>{
+  const f = e.target.files && e.target.files[0];
+  if(f) importSeatingFromFile(f);
+  e.target.value = "";
+});
+
+
+function clearAll(){
+  if(!confirm("全消去します。よろしいですか？")) return;
+  initSeatMap();
+  render();
+  persist();
+}
+
+// 未配置へ戻す
+const dropBack = document.getElementById("dropBack");
+dropBack.ondragover = (e)=>{ e.preventDefault(); dropBack.classList.add("over"); };
+dropBack.ondragleave = ()=> dropBack.classList.remove("over");
+dropBack.ondrop = (e)=>{ e.preventDefault(); dropBack.classList.remove("over");
+  if(!dragId) return;
+  for(const k in seatMap) if(seatMap[k]===dragId) seatMap[k]=null;
+  placed.delete(dragId);
+  dragId = null;
+  render();
+  persist();
+};
+
+// 右リスト折りたたみ
+function toggleSide(){
+  document.body.classList.toggle("side-collapsed");
+  const collapsed = document.body.classList.contains("side-collapsed");
+  localStorage.setItem("shima_side_collapsed", collapsed ? "1" : "0");
+  document.getElementById("sideBtn").textContent = collapsed ? "リスト展開" : "リスト折りたたみ";
+}
+document.getElementById("sideBtn").onclick = toggleSide;
+document.getElementById("sideBtnFloat").onclick = toggleSide;
+
+// events
+document.getElementById("autoBtn").onclick = autoPlace;
+document.getElementById("saveBtn").onclick = saveManual;
+document.getElementById("loadBtn").onclick = loadManual;
+document.getElementById("clearBtn").onclick = clearAll;
+document.getElementById("printBtn").onclick = ()=>window.print();
+document.getElementById("q").addEventListener("input", render);
+document.getElementById("storeFilter").addEventListener("change", render);
+
+// boot
+buildTables();
+buildStoreFilter();
+buildNameDatalist();
+initSeatMap();
+
+// restore seatMap
+(() => {
+  const raw = localStorage.getItem(STORAGE_KEY);
+  if(raw){
+    try{
+      const obj = JSON.parse(raw);
+      if(obj && obj.seatMap){
+        seatMap = obj.seatMap;
+        placed = new Set(Object.values(seatMap).filter(Boolean));
+      }
+    }catch(e){}
+  }
+  // restore side collapsed
+  const sc = localStorage.getItem("shima_side_collapsed")==="1";
+  if(sc){
+    document.body.classList.add("side-collapsed");
+    document.getElementById("sideBtn").textContent = "リスト展開";
+  }
+  render();
+})();
+
+// Re-solve on resize (zoom changes)
+window.addEventListener("resize", () => {
+  requestAnimationFrame(()=>requestAnimationFrame(()=>resolveOverlaps()));
+});
+
+// ===== 追加：ドラッグでスクロール（左右も含む） =====
+(function enableDragPan(){
+  const wrap = document.querySelector('.hallWrap');
+  if(!wrap) return;
+  let isDown=false, sx=0, sy=0, sl=0, st=0;
+  wrap.addEventListener('mousedown', (e)=>{
+    // フォーム部品やドラッグ中は邪魔しない
+    if(e.target.closest('.seat') || e.target.closest('.person') || e.target.closest('button') || e.target.closest('input') || e.target.closest('select')) return;
+    isDown=true; sx=e.clientX; sy=e.clientY; sl=wrap.scrollLeft; st=wrap.scrollTop;
+    wrap.classList.add('panning');
+  });
+  window.addEventListener('mouseup', ()=>{ isDown=false; wrap.classList.remove('panning'); });
+  window.addEventListener('mousemove', (e)=>{
+    if(!isDown) return;
+    const dx = e.clientX - sx;
+    const dy = e.clientY - sy;
+    wrap.scrollLeft = sl - dx;
+    wrap.scrollTop  = st - dy;
+  }, {passive:true});
+
+  // touch
+  wrap.addEventListener('touchstart', (e)=>{
+    if(e.target.closest('.seat') || e.target.closest('.person') || e.target.closest('button') || e.target.closest('input') || e.target.closest('select')) return;
+    const t = e.touches[0];
+    isDown=true; sx=t.clientX; sy=t.clientY; sl=wrap.scrollLeft; st=wrap.scrollTop;
+  }, {passive:true});
+  wrap.addEventListener('touchmove', (e)=>{
+    if(!isDown) return;
+    const t = e.touches[0];
+    const dx = t.clientX - sx;
+    const dy = t.clientY - sy;
+    wrap.scrollLeft = sl - dx;
+    wrap.scrollTop  = st - dy;
+  }, {passive:true});
+  wrap.addEventListener('touchend', ()=>{ isDown=false; }, {passive:true});
+})();
+
+// ===== 追加：名前が長いとき自動で文字を縮めて見切れ防止 =====
+function fitSeatNames(){
+  const seats = document.querySelectorAll('.seat[data-empty="0"] .nm');
+  seats.forEach(el=>{
+    // reset
+    el.style.fontSize = "12px";
+    el.style.letterSpacing = "0em";
+    const seat = el.closest('.seat');
+    if(!seat) return;
+
+    // available height inside seat
+    const maxH = seat.clientHeight - 10; // paddingの分ざっくり
+    let size = 12;
+    // 収まるまで縮める（下限 9px）
+    while(size > 9 && el.scrollHeight > maxH){
+      size -= 0.5;
+      el.style.fontSize = size + "px";
+    }
+    // それでも厳しければ少し詰める
+    if(el.scrollHeight > maxH){
+      el.style.letterSpacing = "-0.02em";
+    }
+  });
+}
+
+
+// ===== 追加：下部スクロールバーと会場図の横スクロールを同期 =====
+(function syncBottomHScroll(){
+  const wrap = document.querySelector('.hallWrap');
+  const hall = document.getElementById('hall');
+  const hScroll = document.getElementById('hScroll');
+  const hInner = document.getElementById('hInner');
+  if(!wrap || !hall || !hScroll || !hInner) return;
+
+  function updateWidth(){
+    const w = hall.scrollWidth || hall.offsetWidth;
+    hInner.style.width = w + 'px';
+  }
+  updateWidth();
+
+  let lock = false;
+  wrap.addEventListener('scroll', ()=>{
+    if(lock) return;
+    lock = true;
+    hScroll.scrollLeft = wrap.scrollLeft;
+    lock = false;
+  }, {passive:true});
+
+  hScroll.addEventListener('scroll', ()=>{
+    if(lock) return;
+    lock = true;
+    wrap.scrollLeft = hScroll.scrollLeft;
+    lock = false;
+  }, {passive:true});
+
+  hScroll.scrollLeft = wrap.scrollLeft;
+
+  window.addEventListener('resize', ()=>{ updateWidth(); hScroll.scrollLeft = wrap.scrollLeft; }, {passive:true});
+  if('ResizeObserver' in window){
+    const ro = new ResizeObserver(()=>{ updateWidth(); hScroll.scrollLeft = wrap.scrollLeft; });
+    ro.observe(hall);
+  }
+})();
+
+// ===== 追加：名前で検索 → 席へジャンプ =====
+function normalizeName(s){
+  return (s||"").toString().trim().replace(/\s+/g,"").toLowerCase();
+}
+function buildNameDatalist(){
+  const dl = document.getElementById("nameList");
+  if(!dl) return;
+  dl.innerHTML = "";
+  const names = Array.from(new Set(ATTENDEES.map(a=>a.name).filter(Boolean)));
+  names.sort((a,b)=>a.localeCompare(b,"ja"));
+  for(const n of names){
+    const opt = document.createElement("option");
+    opt.value = n;
+    dl.appendChild(opt);
+  }
+}
+function findSeatByPersonId(pid){
+  for(const k in seatMap){
+    if(seatMap[k]===pid) return k;
+  }
+  return null;
+}
+function focusSeat(seatIdStr){
+  const wrap = document.querySelector(".hallWrap");
+  const el = document.getElementById(seatIdStr);
+  if(!wrap || !el) return;
+
+  document.querySelectorAll(".seat.focus").forEach(x=>x.classList.remove("focus"));
+  el.classList.add("focus");
+
+  const wr = wrap.getBoundingClientRect();
+  const r = el.getBoundingClientRect();
+  const cx = r.left - wr.left + wrap.scrollLeft + (r.width/2) - (wrap.clientWidth/2);
+  const cy = r.top  - wr.top  + wrap.scrollTop  + (r.height/2) - (wrap.clientHeight/2);
+  wrap.scrollLeft = Math.max(0, cx);
+  wrap.scrollTop  = Math.max(0, cy);
+
+  // 下のバーも追随（あれば）
+  const hScroll = document.getElementById("hScroll");
+  if(hScroll) hScroll.scrollLeft = wrap.scrollLeft;
+
+  setTimeout(()=>el.classList.remove("focus"), 3200);
+}
+function runNameSearch(){
+  const input = document.getElementById("findName");
+  const q = normalizeName(input?.value || "");
+  if(!q) return;
+
+  let person = ATTENDEES.find(a => normalizeName(a.name) === q);
+  if(!person) person = ATTENDEES.find(a => normalizeName(a.name).includes(q));
+
+  if(!person){
+    alert("該当の名前が見つかりませんでした");
+    return;
+  }
+  const seat = findSeatByPersonId(person.id);
+  if(!seat){
+    alert(`「${person.name}」は未配置です（右のリストで確認できます）`);
+    const qbox = document.getElementById("q");
+    if(qbox){ qbox.value = person.name; render(); }
+    return;
+  }
+  focusSeat(seat);
+}
+document.getElementById("findBtn")?.addEventListener("click", runNameSearch);
+document.getElementById("findName")?.addEventListener("keydown", (e)=>{
+  if(e.key==="Enter"){ e.preventDefault(); runNameSearch(); }
+});
+
+</script>
+</body>
+</html>

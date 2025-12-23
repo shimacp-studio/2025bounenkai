@@ -1003,6 +1003,24 @@ function importSeatingObject(obj){
   alert("✅ インポートしました");
 }
 
+// ===== 起動時：GitHub上の確定席次を自動読込 =====
+const DEFAULT_SEATING_URL = "./seating_final.json";
+
+async function autoImportDefault(){
+  try{
+    const res = await fetch(DEFAULT_SEATING_URL, { cache: "no-store" });
+    if(!res.ok) return;
+    const obj = await res.json();
+    importSeatingObject(obj); // 既存のインポート処理を流用
+  }catch(e){
+    console.warn("default seating load skipped:", e);
+  }
+}
+
+// ページ初回描画後に読み込み（競合しないよう少し遅らせる）
+window.addEventListener("load", ()=> setTimeout(autoImportDefault, 300));
+
+  
 function importSeatingFromFile(file){
   const reader = new FileReader();
   reader.onload = ()=>{

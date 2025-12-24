@@ -683,6 +683,48 @@
   touch-action: pan-x pan-y;
 }
 
+
+/* ===== v17: 検索エリアの占拠率を下げる（スマホ） ===== */
+@media (max-width: 980px), (pointer: coarse){
+  header{
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+  header .btnrow{
+    display:flex !important;
+    flex-direction: row !important;      /* 横並び */
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 8px !important;
+    padding: 6px 10px !important;        /* 余白を小さく */
+    min-height: 44px !important;
+  }
+
+  /* 検索入力：小さめ＆横幅控えめ */
+  header #findName{
+    width: min(62vw, 420px) !important;
+    max-width: 62vw !important;
+    height: 36px !important;
+    padding: 6px 10px !important;
+    border-radius: 12px !important;
+    font-size: 15px !important;
+    box-shadow: 0 6px 14px rgba(15,23,42,.06) !important;
+  }
+  header #findBtn{
+    height: 36px !important;
+    padding: 0 12px !important;
+    border-radius: 12px !important;
+    font-size: 14px !important;
+    white-space: nowrap !important;
+  }
+
+  /* 上部の不要な空きはさらに削る */
+  body.is-portrait::before{ top: 50px !important; }
+
+  /* 会場図の上余白を詰める */
+  .layoutWrap, #layoutWrap, main{ padding-top: 2px !important; }
+}
+
 </style>
 </head>
 <body>

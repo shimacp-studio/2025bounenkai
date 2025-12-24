@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5, user-scalable=yes, viewport-fit=cover"/>
 <title>席次表（会場図準拠 / 円卓15）</title>
 <style>
   :root{
@@ -356,13 +356,13 @@
     text-align:center;
     font-weight:900;
     font-size: 12px;
-    line-height: 1.05;
+    line-height: 1.10;
     padding: 0 18px; /* pill + x の分 */
     white-space: normal;
-    display: -webkit-box;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 2;
+    display:block;
+    max-height: 2.35em; /* 2行想定。JSで縮めて全表示を狙う */
     overflow: hidden;
+    overflow-wrap:anywhere;
     word-break: break-word;
     line-break: strict;
   }
@@ -438,6 +438,7 @@
 
   /* 折りたたみボタン */
   .sideToggleFloat{
+
     position: fixed;
     right: 16px;
     bottom: 16px;
@@ -485,6 +486,73 @@
     0%{ box-shadow: 0 0 0 0 rgba(96,165,250,.28), 0 18px 28px rgba(15,23,42,.18); }
     70%{ box-shadow: 0 0 0 16px rgba(96,165,250,0), 0 18px 28px rgba(15,23,42,.18); }
     100%{ box-shadow: 0 0 0 0 rgba(96,165,250,0), 0 18px 28px rgba(15,23,42,.18); }
+  }
+
+
+  /* =======================
+     Mobile (横持ち) 最適化
+     - 右リスト非表示
+     - 会場図を画面内で快適スクロール
+     - 下部に横スクロールバー固定
+  ======================= */
+  @media (max-width: 980px){
+    main{
+      grid-template-columns: 1fr;
+      padding: 0 10px;
+      margin: 10px auto 16px;
+    }
+    .rightPane{ display:none !important; }
+    #sideBtn, .sideToggle{ display:none !important; }
+    .sideToggleFloat{ display:none !important; }
+
+    header .wrap{
+      padding: 10px 12px;
+    }
+    header .row{
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    header .row .spacer{ display:none; }
+    header input[type="text"], header input[type="search"]{
+      min-width: 180px;
+      flex: 1 1 240px;
+    }
+    header .btn{
+      padding: 10px 12px;
+    }
+
+    /* 会場パネルをできるだけ画面いっぱいに */
+    .panel{
+      border-radius: 14px;
+    }
+    .hallWrap{
+      height: calc(100vh - 170px); /* ヘッダー + 余白 + 下部バー分 */
+      overflow: auto;
+      -webkit-overflow-scrolling: touch;
+      padding-bottom: 56px; /* 下部固定バー分 */
+      cursor: grab;
+    }
+
+    /* 下部の横スクロールバーを固定表示（スマホでも触りやすく） */
+    .hScroll{
+      position: fixed;
+      left: 12px;
+      right: 12px;
+      bottom: 10px;
+      margin: 0;
+      height: 20px;
+      z-index: 60;
+      box-shadow: 0 10px 24px rgba(15,23,42,.12);
+    }
+    .hScroll::-webkit-scrollbar{ height: 18px; }
+
+    /* 右側が消えるので、上の説明は短く */
+    .subnote{ display:none; }
+  }
+
+  /* iPhone等の横持ちでさらに詰める */
+  @media (max-width: 980px) and (orientation: landscape){
+    .hallWrap{ height: calc(100vh - 140px); }
   }
 
 </style>
@@ -1003,24 +1071,6 @@ function importSeatingObject(obj){
   alert("✅ インポートしました");
 }
 
-// ===== 起動時：GitHub上の確定席次を自動読込 =====
-const DEFAULT_SEATING_URL = "./seating_final.json";
-
-async function autoImportDefault(){
-  try{
-    const res = await fetch(DEFAULT_SEATING_URL, { cache: "no-store" });
-    if(!res.ok) return;
-    const obj = await res.json();
-    importSeatingObject(obj); // 既存のインポート処理を流用
-  }catch(e){
-    console.warn("default seating load skipped:", e);
-  }
-}
-
-// ページ初回描画後に読み込み（競合しないよう少し遅らせる）
-window.addEventListener("load", ()=> setTimeout(autoImportDefault, 300));
-
-  
 function importSeatingFromFile(file){
   const reader = new FileReader();
   reader.onload = ()=>{

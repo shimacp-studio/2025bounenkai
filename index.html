@@ -826,6 +826,13 @@
   main{ padding-top: 54px !important; }
 }
 
+
+/* ===== v20: ピンチ拡大縮小を許可（iPhone Safari対策） ===== */
+.hallWrap{ touch-action: pan-x pan-y pinch-zoom; }
+@media (pointer: coarse){
+  .hallWrap{ touch-action: pan-x pan-y pinch-zoom; }
+}
+
 </style>
 </head>
 <body>
@@ -1485,11 +1492,13 @@ window.addEventListener("resize", () => {
 
   // touch
   wrap.addEventListener('touchstart', (e)=>{
+    if(e.touches && e.touches.length>1){ isDown=false; return; }
     if(e.target.closest('.seat') || e.target.closest('.person') || e.target.closest('button') || e.target.closest('input') || e.target.closest('select')) return;
     const t = e.touches[0];
     isDown=true; sx=t.clientX; sy=t.clientY; sl=wrap.scrollLeft; st=wrap.scrollTop;
   }, {passive:true});
   wrap.addEventListener('touchmove', (e)=>{
+    if(e.touches && e.touches.length>1){ isDown=false; return; }
     if(!isDown) return;
     const t = e.touches[0];
     const dx = t.clientX - sx;

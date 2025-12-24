@@ -1657,6 +1657,19 @@ if(window.visualViewport){
 updateOrientationClass();
 
 
+
+// ===== v21 preserve scroll: 自動フィットでスクロール位置を戻さない =====
+let __didInitialFit = false;
+let __userMoved = false;
+let __lastVV = { w: 0, h: 0 };
+let __lastScale = 1;
+
+// ユーザーが触ったら以後は「戻さない」
+(function(){
+  const wrap = document.getElementById("wrap");
+  if(!wrap) return;
+  wrap.addEventListener("scroll", ()=>{ __userMoved = true; }, {passive:true});
+})();
 function fitForMobileLandscape(){
   const wrap = document.querySelector(".hallWrap");
   const hall = document.getElementById("hall");
@@ -1689,11 +1702,28 @@ function fitForMobileLandscape(){
 
   hall.style.transformOrigin = "top left";
   hall.style.transform = `scale(${scale})`;
+  // v21: スクロール位置を勝手に戻さない（初回だけ上に寄せる）
+  const prevLeft = wrap.scrollLeft;
+  const prevTop  = wrap.scrollTop;
+  const prevScale = (__lastScale || 1);
 
-  // 初期は上側（1〜2段）を見せたいのでスクロールを少し戻す
-  wrap.scrollTop = 0;
-  wrap.scrollLeft = 0;
-
+  if(!__didInitialFit){
+    wrap.scrollTop = 0;
+    wrap.scrollLeft = 0;
+    __didInitialFit = true;
+  }else{
+    // address bar 伸縮などの微小リサイズでは何もしない
+    // スケールが変わる場合のみ比率で追従
+    const ratio = scale / prevScale;
+    if(Math.abs(ratio - 1) > 0.02){
+      wrap.scrollLeft = prevLeft * ratio;
+      wrap.scrollTop  = prevTop  * ratio;
+    }else{
+      wrap.scrollLeft = prevLeft;
+      wrap.scrollTop  = prevTop;
+    }
+  }
+  __lastScale = scale;
   // 下の横スクロールバー同期がある場合は幅更新
   const hInner = document.getElementById("hInner");
   if(hInner){
@@ -1702,11 +1732,39 @@ function fitForMobileLandscape(){
     hInner.style.width = w + "px";
   }
 }
-window.addEventListener("load", ()=> setTimeout(fitForMobileLandscape, 400));
-window.addEventListener("orientationchange", ()=> setTimeout(fitForMobileLandscape, 450));
-window.addEventListener("resize", ()=> setTimeout(fitForMobileLandscape, 350));
+window.addEventListener("load", ()=>{
+  // v21: 初回だけフィット
+  setTimeout(fitForMobileLandscape, 350);
+});
+
+window.addEventListener("orientationchange", ()=>{
+  // v21: 画面回転のみ確実に再フィット
+  setTimeout(fitForMobileLandscape, 450);
+});
+
+window.addEventListener("resize", ()=>{
+  // v21: 住所バー伸縮などの微小変化は無視
+  const vv = window.visualViewport || { width: window.innerWidth, height: window.innerHeight };
+  const w = Math.round(vv.width || window.innerWidth);
+  const h = Math.round(vv.height || window.innerHeight);
+  const dw = Math.abs(w - (__lastVV.w||0));
+  const dh = Math.abs(h - (__lastVV.h||0));
+  __lastVV = { w, h };
+  if(__didInitialFit && dw < 40 && dh < 40) return;
+  setTimeout(fitForMobileLandscape, 360);
+}, {passive:true});
+
 if(window.visualViewport){
-  window.visualViewport.addEventListener("resize", ()=> setTimeout(fitForMobileLandscape, 350));
+  window.visualViewport.addEventListener("resize", ()=>{
+    // v21: visualViewport resizeはスクロールでも頻発するので厳しめに判定
+    const w = Math.round(window.visualViewport.width);
+    const h = Math.round(window.visualViewport.height);
+    const dw = Math.abs(w - (__lastVV.w||0));
+    const dh = Math.abs(h - (__lastVV.h||0));
+    __lastVV = { w, h };
+    if(__didInitialFit && dw < 60 && dh < 60) return;
+    setTimeout(fitForMobileLandscape, 360);
+  }, {passive:true});
 }
 
 

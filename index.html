@@ -624,6 +624,58 @@
   }
 }
 
+
+/* ====== 追加：iPhone含むスマホ最適化（回転ロック/デスクトップ表示対策） ====== */
+/* “デスクトップ用Webサイトを表示”でも効くように pointer:coarse で判定 */
+@media (hover: none) and (pointer: coarse){
+  /* 上部は検索だけ（より強制） */
+  header{ padding-top: env(safe-area-inset-top); }
+  header .btnrow{ padding: 10px 12px !important; }
+  header .btnrow > *:not(#q):not(#findBtn):not(input[type="search"]):not(button#findBtn){ display:none !important; }
+  header .btnrow{ justify-content: flex-end !important; }
+
+  /* 会場図パネルの見出しも消して縦を稼ぐ */
+  main .panel > .hd{ display:none !important; }
+  main .panel{ border:0 !important; box-shadow:none !important; }
+  main .panel .content{ padding: 8px 0 0 !important; }
+
+  /* 右側は完全に使わない */
+  aside.panel.rightPane{ display:none !important; }
+
+  /* iOSの慣性スクロール */
+  .hallWrap{
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-x pan-y;
+    overscroll-behavior: contain;
+  }
+
+  /* 画面の高さ計算：iOS Safariのアドレスバー変動に強い単位 */
+  .hallWrap{
+    max-height: calc(100svh - 64px); /* ヘッダー分ざっくり確保 */
+  }
+
+  /* 下部の横スクロールバーは指で触れるように少し太く */
+  .hScroll{
+    height: 22px !important;
+    padding: 4px 10px !important;
+  }
+  .hScroll .hInner{
+    height: 14px !important;
+  }
+
+  /* 縦持ちのときは“回転ロックOFF”の注意を強める（iPhoneで回らない原因の9割） */
+  body.is-portrait::before{
+    content:"iPhoneは『画面回転ロック』がONだと横向きになりません。コントロールセンターでロックOFF → 横持ち推奨";
+    top: 56px;
+    font-size: 12px;
+  }
+}
+
+/* iOS Safari 判定（保険）：高さ単位の扱いを安定させる */
+@supports (-webkit-touch-callout: none){
+  .hallWrap{ max-height: calc(100svh - 64px); }
+}
+
 </style>
 </head>
 <body>

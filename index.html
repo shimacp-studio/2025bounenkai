@@ -846,10 +846,21 @@
 }
 @media (pointer: coarse){
   .hallWrap{
-    padding-left: calc(env(safe-area-inset-left, 0px) + 30px);
-    padding-right: calc(env(safe-area-inset-right, 0px) + 30px);
+    padding-left: calc(env(safe-area-inset-left, 0px) + 18px);
+    padding-right: calc(env(safe-area-inset-right, 0px) + 18px);
     scroll-padding-left: 18px;
     scroll-padding-right: 18px;
+  }
+}
+
+
+/* ===== v23: 拡大時の“端張り付き”を減らすため左右ガター増量（スマホ横） ===== */
+@media (pointer: coarse) and (orientation: landscape){
+  .hallWrap{
+    padding-left:  calc(env(safe-area-inset-left, 0px) + 56px) !important;
+    padding-right: calc(env(safe-area-inset-right, 0px) + 56px) !important;
+    scroll-padding-left: 56px !important;
+    scroll-padding-right: 56px !important;
   }
 }
 
@@ -1695,6 +1706,9 @@ function fitForMobileLandscape(){
   const hall = document.getElementById("hall");
   if(!wrap || !hall) return;
 
+  // v23: ピンチ拡大中/拡大状態では自動フィットしない（スクロール位置を守る）
+  if(__isPinching || __isZoomed()){ return; }
+
   const isCoarse = window.matchMedia && window.matchMedia("(pointer: coarse)").matches;
   const isLandscape = (window.matchMedia && window.matchMedia("(orientation: landscape)").matches) || (window.innerWidth > window.innerHeight);
   if(!(isCoarse && isLandscape)) {
@@ -1763,7 +1777,8 @@ window.addEventListener("orientationchange", ()=>{
 });
 
 window.addEventListener("resize", ()=>{
-  // v21: 住所バー伸縮などの微小変化は無視
+  if(__isPinching || __isZoomed()) return;
+// v21: 住所バー伸縮などの微小変化は無視
   const vv = window.visualViewport || { width: window.innerWidth, height: window.innerHeight };
   const w = Math.round(vv.width || window.innerWidth);
   const h = Math.round(vv.height || window.innerHeight);
@@ -1776,7 +1791,8 @@ window.addEventListener("resize", ()=>{
 
 if(window.visualViewport){
   window.visualViewport.addEventListener("resize", ()=>{
-    // v21: visualViewport resizeはスクロールでも頻発するので厳しめに判定
+  if(__isPinching || __isZoomed()) return;
+// v21: visualViewport resizeはスクロールでも頻発するので厳しめに判定
     const w = Math.round(window.visualViewport.width);
     const h = Math.round(window.visualViewport.height);
     const dw = Math.abs(w - (__lastVV.w||0));
@@ -1818,6 +1834,34 @@ if(window.visualViewport){
 
   // デスクトップ用UIが存在しても、スマホはfloatSearchを優先表示
 })();
+
+
+// ===== v23: ピンチ拡大中/拡大状態では自動フィットでスクロールを触らない =====
+let __isPinching = false;
+let __baseVVScale = 1;
+
+(function(){
+  if(window.visualViewport && typeof window.visualViewport.scale === "number"){
+    __baseVVScale = window.visualViewport.scale || 1;
+  }
+  window.addEventListener("touchstart", (e)=>{
+    if(e.touches && e.touches.length > 1) __isPinching = true;
+  }, {passive:true});
+  window.addEventListener("touchmove", (e)=>{
+    if(e.touches && e.touches.length > 1) __isPinching = true;
+  }, {passive:true});
+  window.addEventListener("touchend", ()=>{
+    setTimeout(()=>{ __isPinching = false; }, 250);
+  }, {passive:true});
+
+  window.addEventListener("gesturestart", ()=>{ __isPinching = true; }, {passive:true});
+  window.addEventListener("gestureend", ()=>{ setTimeout(()=>{ __isPinching = false; }, 250); }, {passive:true});
+})();
+
+function __isZoomed(){
+  if(!window.visualViewport || typeof window.visualViewport.scale !== "number") return false;
+  return (window.visualViewport.scale || 1) > (__baseVVScale + 0.02);
+}
 
 </script>
 </body>

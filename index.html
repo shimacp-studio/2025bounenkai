@@ -725,6 +725,65 @@
   .layoutWrap, #layoutWrap, main{ padding-top: 2px !important; }
 }
 
+
+/* ===== v18: スマホは検索だけを上部固定（占拠率低） ===== */
+@media (pointer: coarse){
+  header{
+    position: sticky;
+    top: 0;
+    z-index: 9999;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    background: rgba(255,255,255,.86);
+    border-bottom: 1px solid rgba(15,23,42,.08);
+  }
+  header .wrap{
+    padding: 6px 10px !important;
+  }
+  /* タイトル/説明は隠す */
+  header .wrap > div:first-child{ display:none !important; }
+  header .spacer{ display:none !important; }
+
+  /* ボタン群は検索2つだけ残す */
+  header .btnrow{
+    display:flex !important;
+    flex-direction: row !important;
+    align-items:center !important;
+    justify-content:center !important;
+    gap: 8px !important;
+    padding: 0 !important;
+    min-height: 44px !important;
+  }
+  header .btnrow > *{ margin:0 !important; }
+  header .btnrow button:not(#findBtn){ display:none !important; }
+  header .btnrow input:not(#findName){ display:none !important; }
+  header #importFile{ display:none !important; }
+  header #nameList{ display:none !important; }
+
+  /* 検索入力を小さめに */
+  header #findName{
+    width: min(68vw, 420px) !important;
+    height: 36px !important;
+    padding: 6px 10px !important;
+    border-radius: 12px !important;
+    font-size: 15px !important;
+    box-shadow: 0 6px 14px rgba(15,23,42,.06) !important;
+  }
+  header #findBtn{
+    height: 36px !important;
+    padding: 0 12px !important;
+    border-radius: 12px !important;
+    font-size: 14px !important;
+    white-space: nowrap !important;
+  }
+
+  /* 右リスト系のトグルも不要 */
+  #sideBtn, #sideBtnFloat{ display:none !important; }
+
+  /* 会場の上余白を詰める（固定ヘッダー分だけ確保） */
+  main{ padding-top: 8px !important; }
+}
+
 </style>
 </head>
 <body>
@@ -737,7 +796,7 @@
     <div class="spacer"></div>
     <div class="btnrow">
       
-      <input id="findName" list="nameList" type="text" placeholder="名前で検索…" style="width:220px; max-width: 40vw; padding:9px 12px; border-radius:12px; border:1px solid rgba(226,232,240,.95); box-shadow: 0 8px 18px rgba(15,23,42,.06); font-weight:800;"/>
+      <input id="findName" list="nameList" type="text" placeholder="名前で検索…" autocomplete="off" />
       <datalist id="nameList"></datalist>
       <button id="findBtn" class="ghost">検索</button>
 <button id="autoBtn">自動配置（役員→所属店舗）</button>

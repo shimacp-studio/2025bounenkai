@@ -784,6 +784,48 @@
   main{ padding-top: 8px !important; }
 }
 
+
+/* ===== v19: スマホは上部ヘッダーを消して、検索を会場内にフロート ===== */
+@media (pointer: coarse){
+  header{ display:none !important; }
+}
+
+
+@media (pointer: coarse){
+  .floatSearch{
+    position: fixed;
+    top: calc(env(safe-area-inset-top, 0px) + 10px);
+    left: 14px;
+    z-index: 10050;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    border-radius: 14px;
+    background: rgba(255,255,255,.92);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(15,23,42,.10);
+    box-shadow: 0 10px 22px rgba(15,23,42,.10);
+  }
+  .floatSearch input{
+    width: min(62vw, 360px);
+    height: 34px;
+    padding: 6px 10px;
+    font-size: 15px;
+    border-radius: 12px;
+  }
+  .floatSearch button{
+    height: 34px;
+    padding: 0 12px;
+    font-size: 14px;
+    border-radius: 12px;
+    white-space: nowrap;
+  }
+  /* floatSearch分だけ邪魔にならないよう、会場の上を少しだけ空ける */
+  main{ padding-top: 54px !important; }
+}
+
 </style>
 </head>
 <body>
@@ -815,7 +857,13 @@
 <button class="sideToggleFloat" id="sideBtnFloat">リスト</button>
 
 <main>
-  <section class="panel">
+  
+  <!-- v19: 会場内フロート検索（スマホ向け） -->
+  <div id="floatSearch" class="floatSearch" aria-label="名前検索">
+    <input id="findName_m" list="nameList" type="text" placeholder="名前で検索…" autocomplete="off" />
+    <button id="findBtn_m" type="button">検索</button>
+  </div>
+<section class="panel">
     <div class="hd">
       <strong>会場レイアウト</strong>
       <span class="tag">円卓15（3×5）</span>
@@ -1651,6 +1699,38 @@ window.addEventListener("resize", ()=> setTimeout(fitForMobileLandscape, 350));
 if(window.visualViewport){
   window.visualViewport.addEventListener("resize", ()=> setTimeout(fitForMobileLandscape, 350));
 }
+
+
+// ===== v19 wire mobile search ==========================================
+(function(){
+  const mInput = document.getElementById("findName_m");
+  const mBtn   = document.getElementById("findBtn_m");
+  const dInput = document.getElementById("findName");
+  const dBtn   = document.getElementById("findBtn");
+
+  // nameList を共有（既存のdatalistを使う）
+  if(mInput){
+    mInput.setAttribute("list","nameList");
+  }
+
+  function runSearch(){
+    const val = (mInput?.value || "").trim();
+    if(!val) return;
+    // 既存UIがあればそれに流し込んで同じ検索処理を使う
+    if(dInput) dInput.value = val;
+    if(dBtn) dBtn.click();
+    else if(typeof window.findAndFocusByName === "function"){
+      window.findAndFocusByName(val);
+    }
+  }
+
+  mBtn?.addEventListener("click", runSearch);
+  mInput?.addEventListener("keydown", (e)=>{
+    if(e.key === "Enter"){ e.preventDefault(); runSearch(); }
+  });
+
+  // デスクトップ用UIが存在しても、スマホはfloatSearchを優先表示
+})();
 
 </script>
 </body>

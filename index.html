@@ -833,6 +833,26 @@
   .hallWrap{ touch-action: pan-x pan-y pinch-zoom; }
 }
 
+
+/* ===== v22: 端に寄りすぎない“余白スクロール” ===== */
+.hallWrap{
+  /* 左右端でも卓が画面端に貼り付かないように */
+  padding-left: calc(env(safe-area-inset-left, 0px) + 24px);
+  padding-right: calc(env(safe-area-inset-right, 0px) + 24px);
+
+  /* 検索でフォーカス移動したときも端に貼り付かない */
+  scroll-padding-left: 24px;
+  scroll-padding-right: 24px;
+}
+@media (pointer: coarse){
+  .hallWrap{
+    padding-left: calc(env(safe-area-inset-left, 0px) + 18px);
+    padding-right: calc(env(safe-area-inset-right, 0px) + 18px);
+    scroll-padding-left: 18px;
+    scroll-padding-right: 18px;
+  }
+}
+
 </style>
 </head>
 <body>

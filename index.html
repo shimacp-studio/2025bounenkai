@@ -829,6 +829,15 @@
       overflow: auto;
     }
   }
+  /* ===== v24: 端の卓を“画面中央”に持って来れる左右ガター（JSで可変） ===== */
+.hallWrap{
+  --hGutter: 24px; /* JSが上書き */
+  padding-left:  calc(env(safe-area-inset-left, 0px)  + var(--hGutter)) !important;
+  padding-right: calc(env(safe-area-inset-right, 0px) + var(--hGutter)) !important;
+  scroll-padding-left:  var(--hGutter) !important;
+  scroll-padding-right: var(--hGutter) !important;
+}
+
 </style>
 </head>
 <body>
@@ -1512,25 +1521,30 @@ function fitSeatNames(){
   });
 }
 
-// ===== 下部スクロールバー同期 =====
+// ===== 下部スクロールバー同期（v24: wrap.scrollWidth基準でズレ防止） =====
 (function syncBottomHScroll(){
   const wrap = document.querySelector('.hallWrap');
-  const hall = document.getElementById('hall');
   const hScroll = document.getElementById('hScroll');
-  const hInner = document.getElementById('hInner');
-  if(!wrap || !hall || !hScroll || !hInner) return;
+  const hInner  = document.getElementById('hInner');
+  if(!wrap || !hScroll || !hInner) return;
 
   function updateWidth(){
-    const w = hall.scrollWidth || hall.offsetWidth;
+    // ★ hallではなく、スクロールコンテナ全体（padding込み）の幅に合わせる
+    const w = wrap.scrollWidth;
     hInner.style.width = w + 'px';
   }
+
+  // 外部から呼べるようにしておく（ガター更新/fit後に再計算）
+  window.__updateHScrollWidth = updateWidth;
+
   updateWidth();
 
   let lock = false;
+
   wrap.addEventListener('scroll', ()=>{
     if(lock) return;
     lock = true;
-    hScroll.scrollLeft = wrap.scrollLeft;
+    hScroll.scrollLeft = wrap.scrollLeft; // 同じ単位（CSS px）で同期
     lock = false;
   }, {passive:true});
 
@@ -1541,12 +1555,62 @@ function fitSeatNames(){
     lock = false;
   }, {passive:true});
 
+  // 初期同期
   hScroll.scrollLeft = wrap.scrollLeft;
 
-  window.addEventListener('resize', ()=>{ updateWidth(); hScroll.scrollLeft = wrap.scrollLeft; }, {passive:true});
-  if('ResizeObserver' in window){
-    const ro = new ResizeObserver(()=>{ updateWidth(); hScroll.scrollLeft = wrap.scrollLeft; });
-    ro.observe(hall);
+  // リサイズ/回転/ズームで幅を更新
+  window.addEventListener('resize', ()=>{
+    updateWidth();
+    hScroll.scrollLeft = wrap.scrollLeft;
+  }, {passive:true});
+
+  window.addEventListener('orientationchange', ()=>{
+    setTimeout(()=>{
+      updateWidth();
+      hScroll.scrollLeft = wrap.scrollLeft;
+    }, 80);
+  }, {passive:true});
+
+  if(window.visualViewport){
+    window.visualViewport.addEventListener('resize', ()=>{
+      updateWidth();
+      hScroll.scrollLeft = wrap.scrollLeft;
+    }, {passive:true});
+  }
+})();
+
+// ===== v24: 端の卓を中央に寄せられる左右ガターを可変化 =====
+(function setupDynamicGutter(){
+  const wrap = document.querySelector('.hallWrap');
+  if(!wrap) return;
+
+  function updateHallGutter(){
+    const vv = window.visualViewport;
+    const vw = vv ? vv.width : wrap.clientWidth;
+
+    // “画面中央”に寄せたいので、左右ガターは基本「画面幅の半分」
+    let g = Math.round(vw * 0.5);
+    g = Math.max(24, Math.min(g, 620)); // 上限は暴れ防止
+
+    wrap.style.setProperty('--hGutter', g + 'px');
+
+    // 下部スクロールバーの幅も追従（重要）
+    if(typeof window.__updateHScrollWidth === "function"){
+      window.__updateHScrollWidth();
+    }
+  }
+
+  // 初期
+  updateHallGutter();
+
+  // 回転/リサイズ/ピンチ拡大縮小で更新
+  window.addEventListener('resize', updateHallGutter, {passive:true});
+  window.addEventListener('orientationchange', ()=>setTimeout(updateHallGutter, 60), {passive:true});
+
+  if(window.visualViewport){
+    window.visualViewport.addEventListener('resize', updateHallGutter, {passive:true});
+    // ズーム中にviewportが動く端末もあるので保険
+    window.visualViewport.addEventListener('scroll', updateHallGutter, {passive:true});
   }
 })();
 
@@ -1695,12 +1759,8 @@ function fitForMobileLandscape(){
   }
   __lastScale = scale;
 
-  const hInner = document.getElementById("hInner");
-  if(hInner){
-    const w = (hall.scrollWidth || hallW) * scale;
-    hInner.style.width = w + "px";
-  }
-}
+    if(typeof window.__updateHScrollWidth === "function") window.__updateHScrollWidth();
+
 
 // ======================================================
 // ★追加：PCでも会場図を自動フィット（きれいに見えるように）
@@ -1730,11 +1790,8 @@ function fitForDesktop(){
   hall.style.transform = `scale(${s})`;
   __desktopScale = s;
 
-  const hInner = document.getElementById("hInner");
-  if(hInner){
-    hInner.style.width = (hallW * s) + "px";
-  }
-}
+  if(typeof window.__updateHScrollWidth === "function") window.__updateHScrollWidth();
+
 
 window.addEventListener("load", ()=>{
   setTimeout(fitForMobileLandscape, 350);

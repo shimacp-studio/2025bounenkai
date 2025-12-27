@@ -1713,11 +1713,14 @@ function fitForMobileLandscape(){
   const hall = document.getElementById("hall");
   if(!wrap || !hall) return;
 
-  if(__isPinching || __isZoomed()){ return; }
+  // ピンチ中 / ズーム中は触らない
+  if(__isPinching || __isZoomed()) return;
 
   const isCoarse = window.matchMedia && window.matchMedia("(pointer: coarse)").matches;
   const isLandscape = (window.matchMedia && window.matchMedia("(orientation: landscape)").matches) || (window.innerWidth > window.innerHeight);
-  if(!(isCoarse && isLandscape)) {
+
+  // 条件外ならスケール解除
+  if(!(isCoarse && isLandscape)){
     hall.style.transform = "";
     hall.style.transformOrigin = "";
     return;
@@ -1728,8 +1731,8 @@ function fitForMobileLandscape(){
 
   const grid = hall.querySelector(".tablesGrid") || hall;
   const gridRect = grid.getBoundingClientRect();
-  const hallW = hall.scrollWidth || gridRect.width || 2200;
-  const hallH = hall.scrollHeight || gridRect.height || 1400;
+  const hallW = hall.scrollWidth || gridRect.width || 2400;
+  const hallH = hall.scrollHeight || gridRect.height || 1320;
 
   let scale = (vw - 24) / hallW;
   const targetH = vh - 120;
@@ -1739,8 +1742,8 @@ function fitForMobileLandscape(){
   hall.style.transformOrigin = "top left";
   hall.style.transform = `scale(${scale})`;
 
-  const prevLeft = wrap.scrollLeft;
-  const prevTop  = wrap.scrollTop;
+  const prevLeft  = wrap.scrollLeft;
+  const prevTop   = wrap.scrollTop;
   const prevScale = (__lastScale || 1);
 
   if(!__didInitialFit){
@@ -1759,11 +1762,11 @@ function fitForMobileLandscape(){
   }
   __lastScale = scale;
 
-    if(typeof window.__updateHScrollWidth === "function") window.__updateHScrollWidth();
-
+  if(typeof window.__updateHScrollWidth === "function") window.__updateHScrollWidth();
+}
 
 // ======================================================
-// ★追加：PCでも会場図を自動フィット（きれいに見えるように）
+// ★追加：PCでも会場図を自動フィット
 // ======================================================
 let __desktopScale = 1;
 function fitForDesktop(){
@@ -1772,9 +1775,7 @@ function fitForDesktop(){
   if(!wrap || !hall) return;
 
   const isCoarse = window.matchMedia && window.matchMedia("(pointer: coarse)").matches;
-  if(isCoarse){
-    return; // スマホは fitForMobileLandscape が担当
-  }
+  if(isCoarse) return; // スマホは fitForMobileLandscape が担当
 
   const vw = wrap.clientWidth;
   const vh = wrap.clientHeight;
@@ -1791,42 +1792,47 @@ function fitForDesktop(){
   __desktopScale = s;
 
   if(typeof window.__updateHScrollWidth === "function") window.__updateHScrollWidth();
+}
 
+function __scheduleFit(mobileDelay=350, desktopDelay=120){
+  setTimeout(fitForMobileLandscape, mobileDelay);
+  setTimeout(fitForDesktop, desktopDelay);
+}
 
 window.addEventListener("load", ()=>{
-  setTimeout(fitForMobileLandscape, 350);
-  setTimeout(fitForDesktop, 120);
+  __scheduleFit(350, 120);
 });
 
 window.addEventListener("orientationchange", ()=>{
-  setTimeout(fitForMobileLandscape, 450);
-  setTimeout(fitForDesktop, 160);
+  __scheduleFit(450, 160);
 });
 
 window.addEventListener("resize", ()=>{
   if(__isPinching || __isZoomed()) return;
+
   const vv = window.visualViewport || { width: window.innerWidth, height: window.innerHeight };
   const w = Math.round(vv.width || window.innerWidth);
   const h = Math.round(vv.height || window.innerHeight);
   const dw = Math.abs(w - (__lastVV.w||0));
   const dh = Math.abs(h - (__lastVV.h||0));
   __lastVV = { w, h };
+
   if(__didInitialFit && dw < 40 && dh < 40) return;
-  setTimeout(fitForMobileLandscape, 360);
-  setTimeout(fitForDesktop, 120);
+  __scheduleFit(360, 120);
 }, {passive:true});
 
 if(window.visualViewport){
   window.visualViewport.addEventListener("resize", ()=>{
     if(__isPinching || __isZoomed()) return;
+
     const w = Math.round(window.visualViewport.width);
     const h = Math.round(window.visualViewport.height);
     const dw = Math.abs(w - (__lastVV.w||0));
     const dh = Math.abs(h - (__lastVV.h||0));
     __lastVV = { w, h };
+
     if(__didInitialFit && dw < 60 && dh < 60) return;
-    setTimeout(fitForMobileLandscape, 360);
-    setTimeout(fitForDesktop, 120);
+    __scheduleFit(360, 120);
   }, {passive:true});
 }
 
@@ -1883,6 +1889,7 @@ function __isZoomed(){
   if(!window.visualViewport || typeof window.visualViewport.scale !== "number") return false;
   return (window.visualViewport.scale || 1) > (__baseVVScale + 0.02);
 }
+
 </script>
 </body>
 </html>

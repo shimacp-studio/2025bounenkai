@@ -838,6 +838,13 @@
   scroll-padding-right: var(--hGutter) !important;
 }
 
+/* ✅ iPhone/Safari: ピンチズーム最優先で許可（最終勝ち） */
+.hallWrap{
+  touch-action: auto !important;          /* ←最強。ピンチも含め全部許可 */
+  -webkit-overflow-scrolling: touch;
+}
+
+  
 </style>
 </head>
 <body>
